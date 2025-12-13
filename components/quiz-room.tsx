@@ -1,0 +1,212 @@
+"use client"
+
+import { useState } from "react"
+import { QuizCard } from "./quiz-card"
+import { ProgressBar } from "./progress-bar"
+import { GameButton } from "./game-button"
+import { useRouter } from "next/navigation"
+import { Flame, AlertCircle, CheckCircle } from "lucide-react"
+import { useSound } from "./audio-player"
+
+interface Question {
+  question: string
+  options: string[]
+  correctAnswer: number
+}
+
+interface QuizRoomProps {
+  questions: Question[]
+  questId: string
+}
+
+export function QuizRoom({ questions, questId }: QuizRoomProps) {
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [answers, setAnswers] = useState<number[]>(new Array(questions.length).fill(-1))
+  const [showResults, setShowResults] = useState(false)
+  const router = useRouter()
+  const { playSound } = useSound()
+
+  const handleAnswer = (answerIndex: number) => {
+    const newAnswers = [...answers]
+    newAnswers[currentQuestion] = answerIndex
+    setAnswers(newAnswers)
+    playSound("click")
+  }
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1)
+      playSound("click")
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1)
+      playSound("click")
+    }
+  }
+
+  const handleSubmit = () => {
+    setShowResults(true)
+    const finalScore = calculateScore()
+    setTimeout(() => {
+      playSound(finalScore >= 7 ? "success" : "fail")
+    }, 300)
+  }
+
+  const calculateScore = () => {
+    return answers.reduce((score, answer, index) => {
+      return score + (answer === questions[index].correctAnswer ? 1 : 0)
+    }, 0)
+  }
+
+  const score = calculateScore()
+  const passed = score >= 7
+  const allAnswered = answers.every((a) => a !== -1)
+
+  const handleRetry = () => {
+    setAnswers(new Array(questions.length).fill(-1))
+    setCurrentQuestion(0)
+    setShowResults(false)
+    playSound("click")
+  }
+
+  const handleVictory = () => {
+    const savedProgress = localStorage.getItem("ethereumQuestProgress")
+    const progress = savedProgress ? JSON.parse(savedProgress) : {}
+
+    progress[questId] = "completed"
+
+    const nextQuestId = String(Number(questId) + 1)
+    if (nextQuestId <= "3") {
+      progress[nextQuestId] = "unlocked"
+    }
+
+    localStorage.setItem("ethereumQuestProgress", JSON.stringify(progress))
+
+    playSound("unlock")
+    setTimeout(() => {
+      router.push(`/victory/${questId}`)
+    }, 500)
+  }
+
+  if (showResults) {
+    return (
+      <div className="min-h-screen bg-stone-dark relative overflow-hidden flex items-center justify-center">
+        {/* Background */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute inset-0 bg-[url('/dark-mystical-cave-glowing.jpg')] bg-cover bg-center" />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/80" />
+
+        {/* Results card */}
+        <div className="relative z-10 max-w-2xl mx-auto px-4">
+          <div className="bg-card/80 backdrop-blur-sm border-2 border-glow-amber/50 rounded-lg p-8 md:p-12 text-center">
+            {passed ? (
+              <>
+                <CheckCircle className="w-20 h-20 text-glow-cyan mx-auto mb-6 animate-glow-pulse" />
+                <h2 className="font-[family-name:var(--font-cinzel-decorative)] text-4xl md:text-5xl font-black text-glow-cyan text-glow-sm mb-4">
+                  Victory!
+                </h2>
+                <p className="font-[family-name:var(--font-cinzel)] text-xl text-foreground/80 mb-6">
+                  You have proven your wisdom and passed the trial.
+                </p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-20 h-20 text-destructive mx-auto mb-6 animate-glow-pulse" />
+                <h2 className="font-[family-name:var(--font-cinzel-decorative)] text-4xl md:text-5xl font-black text-destructive text-glow-sm mb-4">
+                  Quest Failed
+                </h2>
+                <p className="font-[family-name:var(--font-cinzel)] text-xl text-foreground/80 mb-6">
+                  You need more wisdom to pass this challenge.
+                </p>
+              </>
+            )}
+
+            <div className="bg-secondary/50 rounded-lg p-6 mb-8">
+              <p className="font-[family-name:var(--font-cinzel)] text-muted-foreground mb-2">Your Score</p>
+              <p className="font-[family-name:var(--font-cinzel-decorative)] text-6xl font-black text-glow-amber">
+                {score}/10
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {passed ? (
+                <GameButton size="lg" onClick={handleVictory}>
+                  Continue Quest
+                </GameButton>
+              ) : (
+                <>
+                  <GameButton size="lg" onClick={handleRetry}>
+                    Retry Quiz
+                  </GameButton>
+                  <GameButton size="lg" variant="secondary" onClick={() => router.push("/")}>
+                    Return to Temple
+                  </GameButton>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-stone-dark relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-[url('/dark-cave-mystical-glowing-crystals.jpg')] bg-cover bg-center" />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/80" />
+
+      {/* Torches */}
+      <div className="absolute top-10 left-10 md:left-20">
+        <Flame className="w-10 h-10 md:w-14 md:h-14 text-glow-amber animate-flicker" />
+        <div className="absolute inset-0 blur-xl bg-glow-amber/50 animate-glow-pulse" />
+      </div>
+      <div className="absolute top-10 right-10 md:right-20">
+        <Flame className="w-10 h-10 md:w-14 md:h-14 text-glow-amber animate-flicker" />
+        <div className="absolute inset-0 blur-xl bg-glow-amber/50 animate-glow-pulse" />
+      </div>
+
+      {/* Progress bar */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-20">
+        <ProgressBar current={currentQuestion + 1} total={questions.length} />
+      </div>
+
+      {/* Quiz content */}
+      <div className="relative z-10 container mx-auto px-4 py-20 md:py-24 flex items-center justify-center min-h-screen">
+        <div className="w-full max-w-3xl">
+          <QuizCard
+            question={questions[currentQuestion]}
+            questionNumber={currentQuestion + 1}
+            selectedAnswer={answers[currentQuestion]}
+            onAnswer={handleAnswer}
+          />
+
+          {/* Navigation */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between">
+            <GameButton variant="secondary" onClick={handlePrevious} disabled={currentQuestion === 0}>
+              Previous
+            </GameButton>
+
+            <div className="flex gap-4">
+              {currentQuestion < questions.length - 1 ? (
+                <GameButton onClick={handleNext} disabled={answers[currentQuestion] === -1}>
+                  Next Question
+                </GameButton>
+              ) : (
+                <GameButton onClick={handleSubmit} disabled={!allAnswered}>
+                  Submit Answers
+                </GameButton>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
