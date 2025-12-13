@@ -27,7 +27,17 @@ export function AudioPlayer({ src, loop = false, volume = 0.3, autoplay = false 
 }
 
 export function useSound() {
-  const playSound = (soundType: "click" | "success" | "fail" | "unlock" | "collect") => {
+  const playSound = (
+    soundType:
+      | "click"
+      | "success"
+      | "fail"
+      | "unlock"
+      | "collect"
+      | "hint"
+      | "trap"
+      | string
+  ) => {
     // Create a simple beep using Web Audio API
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
@@ -45,7 +55,20 @@ export function useSound() {
       collect: { freq: 1000, duration: 0.2, gain: 0.15 },
     }
 
-    const sound = soundMap[soundType]
+    const sound = soundMap[soundType as keyof typeof soundMap]
+
+    // Guard: if a caller requests an unknown sound, silently return
+    if (!sound) {
+      // fallback: short click
+      const fallback = soundMap.click
+      oscillator.frequency.setValueAtTime(fallback.freq, audioContext.currentTime)
+      gainNode.gain.setValueAtTime(fallback.gain, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + fallback.duration)
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + fallback.duration)
+      return
+    }
+
     oscillator.frequency.setValueAtTime(sound.freq, audioContext.currentTime)
     gainNode.gain.setValueAtTime(sound.gain, audioContext.currentTime)
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + sound.duration)

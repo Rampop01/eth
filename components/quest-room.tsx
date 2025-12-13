@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useSound } from "./audio-player"
 import { motion } from "framer-motion"
@@ -60,6 +60,74 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
   const [isMoving, setIsMoving] = useState(false)
   const [doorOpen, setDoorOpen] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
+  const [score, setScore] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(180) // seconds
+  const [hintsRemaining, setHintsRemaining] = useState(3)
+  const [highlightLetters, setHighlightLetters] = useState<string[]>([])
+  const lastFoundRef = useRef<number | null>(null)
+  const [triggeredDecoys, setTriggeredDecoys] = useState<string[]>([])
+  const [decoys] = useState(() => {
+    // create a few decoy positions per room to increase challenge
+    return ROOMS.flatMap((room) =>
+      new Array(2).fill(0).map((_, i) => ({
+        id: `decoy-${room.id}-${i}`,
+        roomId: room.id,
+        position: { x: `${20 + Math.random() * 60}%`, y: `${25 + Math.random() * 50}%` },
+      }))
+    )
+  })
+
+  const [timeUp, setTimeUp] = useState(false)
+
+  // New gameplay states
+  const [lives, setLives] = useState(3)
+  const [invulnerable, setInvulnerable] = useState(false)
+
+  // moving obstacles (hazards) per room — create multiple per room with varied behavior
+  const [obstacles, setObstacles] = useState(() =>
+    ROOMS.flatMap((room, idx) =>
+      new Array(3).fill(0).map((_, j) => ({
+        id: `obs-${idx}-${j}`,
+        roomId: room.id,
+        x: 20 + Math.random() * 60,
+        y: 30 + Math.random() * 40,
+        dir: Math.random() < 0.5 ? -1 : 1,
+        yDir: Math.random() < 0.5 ? -1 : 1,
+        speed: 0.4 + Math.random() * 1.2,
+        vSpeed: 0.2 + Math.random() * 0.6,
+        size: Math.random() < 0.5 ? 6 : 8,
+      }))
+    )
+  )
+
+  // pressure-plate puzzle for room 3
+  const PLATES = [
+    { id: "plate-0", x: 40, y: 50 },
+    { id: "plate-1", x: 50, y: 50 },
+    { id: "plate-2", x: 60, y: 50 },
+  ]
+  const requiredSequence = ["plate-0", "plate-1", "plate-2"]
+  const [plateSequence, setPlateSequence] = useState<string[]>([])
+  const [puzzleSolved, setPuzzleSolved] = useState(false)
+  const [bonusLetters, setBonusLetters] = useState<Letter[]>([])
+
+  // Countdown timer
+  useEffect(() => {
+    if (timeUp) return
+    const t = setInterval(() => {
+      setTimeLeft((s) => {
+        if (s <= 1) {
+          clearInterval(t)
+          setTimeUp(true)
+          setTransitioning(true)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(t)
+  }, [timeUp])
   const router = useRouter()
   const { playSound } = useSound()
 
@@ -125,18 +193,140 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
         handleLetterClick(letter.id)
       }
     })
-  }, [playerPosition, foundLetters, questData.letters, currentRoom])
+    // decoy / trap detection
+    decoys
+      .filter((d) => d.roomId === currentRoom)
+      .forEach((d) => {
+        if (triggeredDecoys.includes(d.id)) return
+        const dx = Number.parseFloat(String(d.position.x))
+        const dy = Number.parseFloat(String(d.position.y))
+        const distance = Math.sqrt(Math.pow(playerPosition.x - dx, 2) + Math.pow(playerPosition.y - dy, 2))
+        if (distance < 5) {
+          // trigger trap
+          setTriggeredDecoys((t) => [...t, d.id])
+          setScore((s) => Math.max(0, s - 30))
+          setTimeLeft((t) => Math.max(0, t - 10))
+          playSound("trap")
+        }
+      })
+  }, [playerPosition, foundLetters, questData.letters, currentRoom, decoys, triggeredDecoys])
+
+  // Move obstacles periodically and detect collisions
+  useEffect(() => {
+    const t = setInterval(() => {
+      setObstacles((prev) =>
+        prev.map((o) => {
+          if (o.roomId !== currentRoom) return o
+          let nx = o.x + o.dir * o.speed
+          let ny = (o as any).y + (o as any).yDir * (o as any).vSpeed
+          let ndir = o.dir
+          let nydir = (o as any).yDir
+          if (nx < 15) {
+            nx = 15
+            ndir = 1
+          } else if (nx > 85) {
+            nx = 85
+            ndir = -1
+          }
+          if (ny < 25) {
+            ny = 25
+            nydir = 1
+          } else if (ny > 75) {
+            ny = 75
+            nydir = -1
+          }
+          return { ...o, x: nx, y: ny, dir: ndir, yDir: nydir }
+        })
+      )
+    }, 160)
+
+    return () => clearInterval(t)
+  }, [currentRoom])
+
+  // obstacle collision detection
+  useEffect(() => {
+    if (invulnerable) return
+    obstacles.forEach((o) => {
+      if (o.roomId !== currentRoom) return
+      const distance = Math.sqrt(Math.pow(playerPosition.x - o.x, 2) + Math.pow(playerPosition.y - o.y, 2))
+      if (distance < 6) {
+        // hit obstacle
+        setLives((l) => Math.max(0, l - 1))
+        setScore((s) => Math.max(0, s - 50))
+        setTimeLeft((t) => Math.max(0, t - 15))
+        setInvulnerable(true)
+        playSound("fail")
+        setTimeout(() => setInvulnerable(false), 2000)
+      }
+    })
+  }, [playerPosition, obstacles, invulnerable, currentRoom])
+
+  // pressure plate detection (room 3)
+  useEffect(() => {
+    if (puzzleSolved || currentRoom !== 3) return
+    PLATES.forEach((p) => {
+      const distance = Math.sqrt(Math.pow(playerPosition.x - p.x, 2) + Math.pow(playerPosition.y - p.y, 2))
+      if (distance < 6) {
+        setPlateSequence((seq) => {
+          if (seq[seq.length - 1] === p.id) return seq
+          const next = [...seq, p.id].slice(-requiredSequence.length)
+          for (let i = 0; i < next.length; i++) {
+            if (next[i] !== requiredSequence[i]) {
+              playSound("fail")
+              return []
+            }
+          }
+          playSound("click")
+          if (next.length === requiredSequence.length) {
+            setPuzzleSolved(true)
+            playSound("unlock")
+            const bonus: Letter = {
+              id: `bonus-${Date.now()}`,
+              letter: "★",
+              roomId: 3,
+              position: { x: "50%", y: "35%" },
+              hint: "A hidden relic!",
+            }
+            setBonusLetters((b) => [...b, bonus])
+            setScore((s) => s + 300)
+            setTimeLeft((t) => t + 30)
+          }
+          return next
+        })
+      }
+    })
+  }, [playerPosition, puzzleSolved, currentRoom])
 
   const handleLetterClick = (letterId: string) => {
-    if (!foundLetters.includes(letterId)) {
-      setFoundLetters([...foundLetters, letterId])
-      playSound("success")
+    if (foundLetters.includes(letterId)) return
 
-      if (foundLetters.length + 1 === questData.letters.length) {
+    // scoring: base points + time bonus + combo multiplier
+    const now = Date.now()
+    const last = lastFoundRef.current
+    const deltaSec = last ? (now - last) / 1000 : 999
+    const base = 100
+    const timeBonus = Math.max(0, 50 - Math.floor(deltaSec * 2))
+    const combo = deltaSec < 5 ? 1.5 : 1.0
+    const points = Math.round((base + timeBonus) * combo)
+
+    setFoundLetters((prev) => {
+      const updated = [...prev, letterId]
+      // reward points
+      setScore((s) => s + points)
+      lastFoundRef.current = now
+
+      // check completion
+      if (updated.length === questData.letters.length) {
         setDoorOpen(true)
         playSound("unlock")
+        // bonus for finishing quickly
+        const finishBonus = Math.max(0, Math.floor(timeLeft / 2))
+        setScore((s) => s + finishBonus)
       }
-    }
+
+      playSound("success")
+      return updated
+    })
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -160,8 +350,35 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
     router.push(`/quiz/${questId}`)
   }
 
+  const formatTime = (s: number) => {
+    const mm = Math.floor(s / 60)
+    const ss = s % 60
+    return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+  }
+
+  const requestHint = () => {
+    if (hintsRemaining > 0) {
+      setHintsRemaining((h) => h - 1)
+      const ids = questData.letters.filter((l) => l.roomId === currentRoom).map((l) => l.id)
+      setHighlightLetters(ids)
+      playSound("hint")
+      setTimeout(() => setHighlightLetters([]), 6000)
+      return
+    }
+
+    // pay points for hint if available
+    const cost = 50
+    if (score >= cost) {
+      setScore((s) => s - cost)
+      const ids = questData.letters.filter((l) => l.roomId === currentRoom).map((l) => l.id)
+      setHighlightLetters(ids)
+      playSound("hint")
+      setTimeout(() => setHighlightLetters([]), 6000)
+    }
+  }
+
   const currentRoomData = ROOMS[currentRoom]
-  const currentRoomLetters = questData.letters.filter((letter) => letter.roomId === currentRoom)
+  const currentRoomLetters = [...questData.letters, ...bonusLetters].filter((letter) => letter.roomId === currentRoom)
 
   return (
     <div className="relative w-full h-screen overflow-hidden touch-none" onTouchMove={handleTouchMove}>
@@ -174,6 +391,42 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
         >
           <div className="text-amber-400 font-medieval text-xl md:text-3xl animate-pulse">
             Entering {ROOMS[currentRoom]?.name}...
+          </div>
+        </motion.div>
+      )}
+
+      {timeUp && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+        >
+          <div className="bg-stone-900/95 border border-amber-600 rounded-lg p-6 text-center">
+            <h2 className="text-amber-300 text-2xl mb-3 font-medieval">Time's Up</h2>
+            <p className="text-stone-400 mb-4">You ran out of time. Try again or proceed to the quiz to claim partial rewards.</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  // retry: reset state
+                  setTimeLeft(180)
+                  setTimeUp(false)
+                  setTransitioning(false)
+                  setFoundLetters([])
+                  setScore(0)
+                  setTriggeredDecoys([])
+                  lastFoundRef.current = null
+                }}
+                className="px-4 py-2 bg-cyan-600 text-stone-900 rounded"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => router.push(`/quiz/${questId}`)}
+                className="px-4 py-2 bg-amber-600 text-stone-900 rounded"
+              >
+                Proceed to Quiz
+              </button>
+            </div>
           </div>
         </motion.div>
       )}
@@ -191,74 +444,57 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
         />
 
         {/* Wall cracks and details */}
-        <div className="absolute inset-0">
-          <div className="absolute top-[15%] left-[20%] w-32 h-1 bg-black/30 blur-sm rotate-12" />
-          <div className="absolute top-[25%] right-[25%] w-24 h-1 bg-black/30 blur-sm -rotate-6" />
-          <div className="absolute bottom-[30%] left-[30%] w-40 h-1 bg-black/30 blur-sm rotate-3" />
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/60 via-stone-950/40 to-transparent">
-          <div
-            className="w-full h-full opacity-20"
-            style={{
-              backgroundImage: `linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)`,
-              backgroundSize: "80px 80px",
-            }}
-          />
-        </div>
-
-        <div className="absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black/70 via-stone-950/50 to-transparent pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black/70 via-stone-950/50 to-transparent pointer-events-none" />
-
-        <div className="absolute left-[18%] top-[15%] bottom-[35%] w-16 md:w-24 bg-gradient-to-r from-stone-800 via-stone-700 to-stone-800 border-l-2 border-r-2 border-stone-900/50">
-          <div
-            className="w-full h-full opacity-30"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.2) 10px, rgba(0,0,0,0.2) 11px)",
-            }}
-          />
-        </div>
-        <div className="absolute right-[18%] top-[15%] bottom-[35%] w-16 md:w-24 bg-gradient-to-l from-stone-800 via-stone-700 to-stone-800 border-l-2 border-r-2 border-stone-900/50">
-          <div
-            className="w-full h-full opacity-30"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.2) 10px, rgba(0,0,0,0.2) 11px)",
-            }}
-          />
-        </div>
-
-        <div className="absolute left-[20%] top-[20%]">
-          <div className="relative w-12 h-12 md:w-16 md:h-16">
-            <div
-              className={`absolute inset-0 bg-${currentRoomData.torchColor}-500/30 rounded-full blur-xl animate-pulse`}
-            />
-            <div className={`absolute inset-2 bg-${currentRoomData.torchColor}-400/60 rounded-full animate-flicker`} />
-            <div className={`absolute inset-4 bg-${currentRoomData.torchColor}-300 rounded-full`} />
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-3 h-8 bg-stone-700 rounded-sm" />
+        <div className="absolute top-4 left-4 z-30 flex items-start gap-3 max-w-[calc(100%-3rem)]">
+          {/* Room card (compact) */}
+          <div className="bg-stone-950/90 backdrop-blur-sm border-2 border-amber-700/60 rounded-md p-2 w-auto flex-shrink-0">
+            <h2 className="text-amber-400 font-medieval text-sm md:text-base font-bold text-center">{currentRoomData.name}</h2>
+            <p className="text-stone-400 text-[10px] md:text-xs text-center italic">{currentRoomData.description}</p>
           </div>
-        </div>
-        <div className="absolute right-[20%] top-[20%]">
-          <div className="relative w-12 h-12 md:w-16 md:h-16">
-            <div
-              className={`absolute inset-0 bg-${currentRoomData.torchColor}-500/30 rounded-full blur-xl animate-pulse`}
-            />
-            <div className={`absolute inset-2 bg-${currentRoomData.torchColor}-400/60 rounded-full animate-flicker`} />
-            <div className={`absolute inset-4 bg-${currentRoomData.torchColor}-300 rounded-full`} />
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-3 h-8 bg-stone-700 rounded-sm" />
-          </div>
-        </div>
 
-        {/* Room-specific decorations */}
-        {currentRoom === 1 && (
-          <>
-            {/* Weapons on walls */}
-            <div className="absolute left-[28%] top-[18%] w-2 h-20 bg-stone-600 rotate-15" />
-            <div className="absolute left-[30%] top-[16%] w-16 h-2 bg-stone-500 rotate-15" />
-            <div className="absolute right-[28%] top-[22%] w-2 h-20 bg-stone-600 -rotate-20" />
-          </>
-        )}
+          {/* Found letters (compact, horizontally scrollable) */}
+          <div className="bg-stone-950/90 backdrop-blur-sm border-2 border-cyan-600/60 rounded-md p-2 inline-flex items-center gap-2 overflow-hidden">
+            <h3 className="text-cyan-400 font-medieval text-xs md:text-sm mr-2 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="hidden md:inline">Found</span>
+            </h3>
+            <div className="flex gap-2 overflow-x-auto pr-2" style={{ maxWidth: 240 }}>
+              {questData.word.split("").map((letter, index) => {
+                const letterData = questData.letters[index]
+                const isFound = letterData && foundLetters.includes(letterData.id)
+                return (
+                  <div
+                    key={index}
+                    className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border rounded text-sm md:text-lg font-bold font-medieval transition-all duration-300 ${
+                      isFound ? "border-amber-500 text-amber-400 bg-amber-500/10" : "border-stone-700 text-stone-600 bg-stone-900/50"
+                    }`}
+                  >
+                    {isFound ? letter : "?"}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="ml-2 text-stone-400 text-xs">{foundLetters.length}/{questData.letters.length}</div>
+          </div>
+
+          {/* Right-side HUD */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="bg-stone-950/90 border border-amber-700/50 rounded-md px-3 py-1 text-center">
+              <div className="text-amber-400 text-xs">Score</div>
+              <div className="text-stone-300 font-bold text-sm">{score}</div>
+            </div>
+            <div className="bg-stone-950/90 border border-cyan-700/40 rounded-md px-3 py-1 text-center">
+              <div className="text-amber-400 text-xs">Time</div>
+              <div className="text-stone-300 font-bold text-sm">{formatTime(timeLeft)}</div>
+            </div>
+            <button onClick={requestHint} className="px-2 py-1 bg-cyan-600/70 hover:bg-cyan-500 text-stone-900 rounded text-sm">
+              Hint ({hintsRemaining})
+            </button>
+            <div className="bg-stone-950/90 border border-red-700/40 rounded-md px-2 py-1 text-center">
+              <div className="text-amber-400 text-xs">Lives</div>
+              <div className="text-stone-300 font-bold text-sm">{lives}</div>
+            </div>
+            </div>
+          </div>
 
         {currentRoom === 2 && (
           <>
@@ -318,6 +554,7 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
       {/* Letters with improved visibility */}
       {currentRoomLetters.map((letter) => {
         const isFound = foundLetters.includes(letter.id)
+        const isHighlighted = highlightLetters.includes(letter.id)
         const letterX = Number.parseFloat(letter.position.x)
         const letterY = Number.parseFloat(letter.position.y)
         const distance = Math.sqrt(Math.pow(playerPosition.x - letterX, 2) + Math.pow(playerPosition.y - letterY, 2))
@@ -337,25 +574,30 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
             animate={
               isFound
                 ? { scale: 0, opacity: 0 }
-                : isVeryClose
-                  ? { scale: 1.3, opacity: 1 }
-                  : isNearby
-                    ? { scale: 1, opacity: 0.8 }
-                    : { scale: 0.5, opacity: 0 }
+                : isHighlighted
+                  ? { scale: 1.4, opacity: 1 }
+                  : isVeryClose
+                    ? { scale: 1.3, opacity: 1 }
+                    : isNearby
+                      ? { scale: 1, opacity: 0.8 }
+                      : { scale: 0.5, opacity: 0 }
             }
             transition={{ duration: 0.3 }}
           >
             <div className="relative">
               {isNearby && !isFound && <div className="absolute inset-0 bg-cyan-400/30 blur-lg animate-pulse" />}
+              {isHighlighted && !isFound && <div className="absolute inset-0 ring-2 ring-cyan-400/70 blur-sm rounded" />}
               <div
                 className={`text-3xl md:text-5xl font-medieval font-bold relative ${
                   isFound
                     ? "text-amber-500"
-                    : isVeryClose
-                      ? "text-cyan-300 animate-bounce"
-                      : isNearby
-                        ? "text-cyan-400"
-                        : "text-transparent"
+                    : isHighlighted
+                      ? "text-amber-300 animate-pulse"
+                      : isVeryClose
+                        ? "text-cyan-300 animate-bounce"
+                        : isNearby
+                          ? "text-cyan-400"
+                          : "text-transparent"
                 }`}
                 style={{
                   textShadow: isNearby && !isFound ? "0 0 20px rgba(34, 211, 238, 0.8)" : "none",
@@ -378,6 +620,28 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
           </motion.div>
         )
       })}
+
+      {/* Decoys / traps */}
+      {decoys
+        .filter((d) => d.roomId === currentRoom)
+        .map((d) => {
+          const triggered = triggeredDecoys.includes(d.id)
+          return (
+            <motion.div
+              key={d.id}
+              className="absolute z-10 pointer-events-none"
+              style={{
+                left: d.position.x,
+                top: d.position.y,
+                transform: "translate(-50%, -50%)",
+              }}
+              animate={triggered ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 0.7 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="text-xl md:text-2xl text-red-400 drop-shadow-lg">✦</div>
+            </motion.div>
+          )
+        })}
 
       {/* Player character */}
       <motion.div
@@ -420,6 +684,40 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
         </div>
       </motion.div>
 
+      {/* Obstacles (moving hazards) */}
+      {obstacles
+        .filter((o) => o.roomId === currentRoom)
+        .map((o) => (
+          <motion.div
+            key={o.id}
+            className="absolute z-15 pointer-events-none"
+            style={{
+              left: `${o.x}%`,
+              top: `${o.y}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+            animate={invulnerable ? { scale: 0.9, opacity: 0.6 } : { scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-red-500 drop-shadow-lg">⚔</div>
+          </motion.div>
+        ))}
+
+      {/* Pressure plates (room 3) */}
+      {currentRoom === 3 && (
+        <>
+          {PLATES.map((p) => (
+            <div
+              key={p.id}
+              className={`absolute w-8 h-3 rounded-sm bg-stone-800 border-2 border-stone-900/60 ${
+                plateSequence.includes(p.id) ? "bg-amber-600" : "bg-stone-800"
+              }`}
+              style={{ left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%, -50%)" }}
+            />
+          ))}
+        </>
+      )}
+
       {/* UI - Top section */}
       <div className="absolute top-4 left-4 right-4 z-30">
         {/* Room name */}
@@ -460,12 +758,28 @@ export function QuestRoom({ questData, questId }: QuestRoomProps) {
           </p>
         </div>
 
-        {/* Controls hint */}
-        <div className="mt-3 bg-stone-950/80 border border-cyan-500/50 rounded-lg p-2">
-          <p className="text-cyan-400 text-xs text-center font-medieval md:hidden">Drag to move • Tap doors</p>
-          <p className="text-cyan-400 text-xs text-center font-medieval hidden md:block">
-            WASD / Arrows to move • Explore all rooms
-          </p>
+        {/* Controls hint + HUD */}
+        <div className="mt-3 bg-stone-950/80 border border-cyan-500/50 rounded-lg p-2 flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-cyan-400 text-xs text-center font-medieval md:hidden">Drag to move • Tap doors</p>
+            <p className="text-cyan-400 text-xs text-center font-medieval hidden md:block">WASD / Arrows to move • Explore all rooms</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-amber-400 font-bold">Score</div>
+              <div className="text-stone-400">{score}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-amber-400 font-bold">Time</div>
+              <div className="text-stone-400">{formatTime(timeLeft)}</div>
+            </div>
+            <button
+              onClick={requestHint}
+              className="ml-2 px-3 py-1 bg-cyan-600/70 hover:bg-cyan-500 text-stone-900 rounded font-medieval text-sm"
+            >
+              Hint ({hintsRemaining})
+            </button>
+          </div>
         </div>
       </div>
 
