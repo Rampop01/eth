@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@stacks/connect": "^8.2.3",
+    "@stacks/transactions": "^7.3.0",
     "@vercel/analytics": "^1.6.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
