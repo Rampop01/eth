@@ -1,7 +1,8 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Cinzel, Cinzel_Decorative } from "next/font/google"
 import { Analytics } from "@vercel/analytics/react"
+import { Web3Provider } from "./providers"
+import { Header } from "@/components/header"
 import "./globals.css"
 
 const cinzel = Cinzel({
@@ -48,8 +49,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${cinzel.variable} ${cinzelDecorative.variable} font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <Web3Provider>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+          </div>
+          <Analytics />
+        </Web3Provider>
       </body>
     </html>
   )
