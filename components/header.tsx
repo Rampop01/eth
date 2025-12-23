@@ -2,6 +2,13 @@
 
 import Link from 'next/link';
 import { WalletConnectButton } from './WalletConnectButton';
+import { cn } from '@/lib/utils';
+
+const navigation = [
+  { name: 'Quests', href: '/' },
+  { name: 'Marketplace', href: '/marketplace' },
+  { name: 'Leaderboard', href: '/leaderboard' },
+];
 
 export function Header() {
   return (
@@ -11,10 +18,28 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-2">
             <span className="inline-block font-cinzel text-xl font-bold">Ethereum Quest</span>
           </Link>
+          
+          <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  'transition-colors hover:text-foreground/80',
+                  item.href === window?.location.pathname
+                    ? 'text-foreground'
+                    : 'text-foreground/60'
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
         </div>
-        <nav className="flex items-center gap-4">
+        
+        <div className="flex items-center gap-4">
           <WalletConnectButton />
-        </nav>
+        </div>
       </div>
     </header>
   );
