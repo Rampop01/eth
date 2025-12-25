@@ -158,6 +158,63 @@ An interactive way to learn more about the game's world and mechanics.
 - **Progress Tracking**: Keep track of what you've learned
 - **Easy Navigation**: Simple controls to move between sections
 
+## 🔄 User Flow
+
+### Getting Started Journey
+1. **First-Time Users**
+   - Arrive at the Welcome Screen
+   - Choose to either explore as a guest or create an account
+   - Complete a brief tutorial highlighting key features
+   - Receive a welcome reward to get started
+
+2. **Returning Users**
+   - Log in to access their profile
+   - See their current quest progress
+   - Check notifications for new content or rewards
+   - Continue from where they left off
+
+### Core Gameplay Loop
+1. **Select a Quest**
+   - Browse available quests in the Quest Selection screen
+   - Filter by difficulty, reward type, or time commitment
+   - View detailed information before starting
+
+2. **Complete Challenges**
+   - Answer quiz questions to progress
+   - Use hints if needed (limited per quest)
+   - Track progress with the on-screen counter
+
+3. **Earn Rewards**
+   - View animated celebration for completing quests
+   - Receive in-app currency and items
+   - Unlock achievements and badges
+   - See progress toward larger goals
+
+4. **Engage with Community**
+   - Check position on the leaderboard
+   - Compare stats with friends
+   - Share achievements on social media
+
+### Advanced Features
+1. **Marketplace Interaction**
+   - Browse available items and collectibles
+   - Purchase upgrades or cosmetic items
+   - Sell unwanted items to other players
+   - Manage inventory and wallet
+
+2. **Progression System**
+   - Level up by earning experience points
+   - Unlock special abilities or perks
+   - Access exclusive content at higher levels
+   - Track overall statistics and milestones
+
+### Support and Learning
+1. **Access Help**
+   - Visit the Story and Guides section
+   - Read tutorials and game lore
+   - Contact support if needed
+   - Access FAQs and community forums
+
 ## 🏗 Project Structure
 
 ```
@@ -209,20 +266,7 @@ forge create --rpc-url <your_rpc_url> \
   src/YourContract.sol:YourContract
 ```
 
-## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before making a pull request.
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Next.js and Vercel for the amazing framework
-- The Ethereum community for building the future of Web3
-- All contributors who have helped improve this project
-
----
-
-Made with ❤️ by [Your Name] | [Twitter](https://twitter.com/yourhandle) | [GitHub](https://github.com/yourusername)
