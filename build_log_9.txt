@@ -1,0 +1,157 @@
+   ▲ Next.js 16.0.10 (webpack)
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 33.8s
+
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+Module not found: Can't resolve 'porto/internal' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+ ⚠ Compiled with warnings in 33.4s
+
+./node_modules/@wagmi/connectors/dist/esm/coinbaseWallet.js
+Module not found: Can't resolve '@coinbase/wallet-sdk' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/coinbaseWallet.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+./node_modules/@wagmi/connectors/dist/esm/gemini.js
+Module not found: Can't resolve '@gemini-wallet/core' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/gemini.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+./node_modules/@wagmi/connectors/dist/esm/metaMask.js
+Module not found: Can't resolve '@metamask/sdk' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/metaMask.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+Module not found: Can't resolve 'porto/internal' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+Module not found: Can't resolve 'porto' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+Did you mean './porto'?
+Requests that should resolve in the current directory need to start with './'.
+Requests that start with a name are treated as module requests and resolve within module directories (node_modules).
+If changing the source code is not an option there is also a resolve options called 'preferRelative' which tries to resolve these kind of requests in the current directory too.
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/porto.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+./node_modules/@wagmi/connectors/dist/esm/walletConnect.js
+Module not found: Can't resolve '@walletconnect/ethereum-provider' in '/Users/abba/Desktop/eth/node_modules/@wagmi/connectors/dist/esm'
+
+Import trace for requested module:
+./node_modules/@wagmi/connectors/dist/esm/walletConnect.js
+./node_modules/@wagmi/connectors/dist/esm/exports/index.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/utils/helpers.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js
+./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/index.js
+./app/providers.tsx
+
+ ✓ Compiled successfully in 67s
+   Skipping validation of types
+   Collecting page data using 7 workers ...
+   Generating static pages using 7 workers (0/36) ...
+   Generating static pages using 7 workers (9/36) 
+   Generating static pages using 7 workers (18/36) 
+   Generating static pages using 7 workers (27/36) 
+ ✓ Generating static pages using 7 workers (36/36) in 3.6s
+[Reown Config] Failed to fetch remote project configuration. Using local/default values. Error: HTTP status code: 403
+    at d (.next/server/chunks/3595.js:4460:21312)
+    at async e.get (.next/server/chunks/3595.js:4460:21538)
+    at async Object.fetchProjectConfig (.next/server/chunks/3595.js:5247:7690)
+    at async Object.fetchRemoteFeatures (.next/server/chunks/3595.js:743:38299)
+    at async ag.initialize (.next/server/chunks/3595.js:743:44172)
+    at async ag.initialize (.next/server/chunks/3595.js:743:84146) {
+  [cause]: Response {
+    status: 403,
+    statusText: 'Forbidden',
+    headers: Headers {
+      date: 'Thu, 25 Dec 2025 09:56:11 GMT',
+      'content-type': 'text/plain; charset=UTF-8',
+      'content-length': '9',
+      connection: 'keep-alive',
+      'cf-ray': '9b377792dfca60ef-LHR',
+      'access-control-allow-origin': '*',
+      'cache-control': 'public, max-age=300, s-maxage=300',
+      vary: 'Accept-Encoding',
+      server: 'cloudflare',
+      'alt-svc': 'h3=":443"; ma=86400'
+    },
+    body: undefined,
+    bodyUsed: false,
+    ok: false,
+    redirected: false,
+    type: 'default',
+    url: 'https://api.web3modal.org/appkit/v1/config?projectId=YOUR_PROJECT_ID&st=appkit&sv=react-wagmi-1.8.15'
+  }
+}
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /leaderboard
+├ ○ /marketplace
+├ ● /quest/[id]
+│ ├ /quest/1
+│ ├ /quest/2
+│ ├ /quest/3
+│ └ [+7 more paths]
+├ ○ /quests
+├ ● /quiz/[id]
+│ ├ /quiz/1
+│ ├ /quiz/2
+│ ├ /quiz/3
+│ └ [+7 more paths]
+├ ● /scroll/[id]
+│ ├ /scroll/1
+│ ├ /scroll/2
+│ ├ /scroll/3
+│ └ [+7 more paths]
+└ ƒ /victory/[id]
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
