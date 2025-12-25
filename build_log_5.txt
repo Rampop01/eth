@@ -1,0 +1,44 @@
+
+> questeth@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.10 (Turbopack)
+
+   Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./node_modules/thread-stream/README.md
+Unknown module type
+This module doesn't have an associated type. Use a known file extension, or register a loader for it.
+
+Read more: https://nextjs.org/docs/app/api-reference/next-config-js/turbo#webpack-loaders
+
+
+./node_modules/thread-stream/LICENSE:1:5
+Parsing ecmascript source code failed
+[0m[31m[1m>[22m[39m[90m 1 |[39m [33mMIT[39m [33mLicense[39m
+ [90m   |[39m     [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m
+ [90m 3 |[39m [33mCopyright[39m (c) [35m2021[39m [33mMatteo[39m [33mCollina[39m
+ [90m 4 |[39m[0m
+
+Expected ';', '}' or <eof>
+
+Import trace:
+  Client Component SSR:
+    ./node_modules/thread-stream/LICENSE [Client Component SSR]
+    ./node_modules/thread-stream/index.js [Client Component SSR]
+    ./node_modules/pino/lib/transport.js [Client Component SSR]
+    ./node_modules/pino/pino.js [Client Component SSR]
+    ./node_modules/@walletconnect/logger/dist/index.es.js [Client Component SSR]
+    ./node_modules/@walletconnect/utils/dist/index.js [Client Component SSR]
+    ./node_modules/@walletconnect/universal-provider/dist/index.js [Client Component SSR]
+    ./node_modules/@reown/appkit-controllers/dist/esm/src/controllers/AdapterController/WalletConnectConnector.js [Client Component SSR]
+    ./node_modules/@reown/appkit-adapter-wagmi/dist/esm/src/client.js [Client Component SSR]
+    ./app/providers.tsx [Client Component SSR]
+    ./app/providers.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+
+    at ignore-listed frames
