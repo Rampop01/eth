@@ -2,25 +2,16 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { mainnet, sepolia } from 'wagmi/chains';
+import { mainnet, sepolia } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/react'; 
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { ReactNode } from 'react';
 
-// Configure chains & providers
-const config = createConfig({
-  chains: [mainnet, sepolia],
-  transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
-  },
-});
+// Configure networks
+const networks = [mainnet, sepolia];
 
 // Create a client
 const queryClient = new QueryClient();
-
-// Create Wagmi adapter
-const wagmiAdapter = new WagmiAdapter({ config, queryClient });
 
 // Metadata 
 const metadata = {
@@ -30,16 +21,28 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
+const projectId = 'YOUR_PROJECT_ID'; // Placeholder
+
+// Create Wagmi adapter
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId,
+  ssr: true
+});
+
 // Create modal
 createAppKit({
   adapters: [wagmiAdapter],
-  networks: [mainnet, sepolia],
+  networks,
   metadata: metadata,
-  projectId: 'YOUR_PROJECT_ID', // Placeholder, user needs to set this
+  projectId,
   features: {
-    analytics: true // Optional - defaults to your Cloud configuration
+    analytics: true
   }
 });
+
+// Export config for usage elsewhere if needed, though here we just use it in provider
+const config = wagmiAdapter.wagmiConfig;
 
 export function Web3Provider({ children }: { children: ReactNode }) {
   return (
