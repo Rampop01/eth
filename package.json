@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@coinbase/wallet-sdk": "^4.3.7",
     "@reown/appkit": "^1.8.15",
     "@reown/appkit-adapter-wagmi": "^1.8.15",
     "@stacks/connect": "^8.2.3",
